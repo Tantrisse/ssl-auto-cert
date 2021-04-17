@@ -64,9 +64,9 @@ cleanedDomainList="$(echo -e "${domainList}" | tr -d '[:space:]')"
 hostFile=$(getent ahosts | awk '{$1=""}1' | awk '{print}' ORS=' ' | tr " " "\n" | sed '/^[[:space:]]*$/d')
 while IFS=',' read -ra ADDR; do
     for i in "${ADDR[@]}"; do
-        if ! grep -q "$i" <<< $hostFile;then
+        if ! grep -q "^$i$" <<< $hostFile;then
             echo -ne "Adding : "
-            echo "127.0.0.1 $i" | sudo tee -a /etc/hosts
+            echo -e "\n127.0.0.1 $i" | sudo tee -a /etc/hosts
         fi
     done
 done <<< "$cleanedDomainList"
