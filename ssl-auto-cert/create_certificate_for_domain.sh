@@ -3,6 +3,8 @@
 ########################
 #       Env var        #
 ########################
+shouldTouchTraefik=false
+
 if test -f ".env"
 then
     source .env
@@ -48,8 +50,8 @@ else
     certificateName="Local Develop Cert"
     for certDB in $(find  ~/ -name "cert9.db")
     do
-        certDir=$(dirname ${certDB});
-        certutil -A -n "${certificateName}" -t "TCu,Cuw,Tuw" -i ${certificateFile} -d sql:${certDir}
+        certDir=$(dirname "$certDB");
+        certutil -A -n "${certificateName}" -t "TCu,Cuw,Tuw" -i ${certificateFile} -d sql:"$certDir"
     done
 fi
 
@@ -57,14 +59,14 @@ fi
 # Hosts file appending #
 ########################
 # Ask for new (sub)domain to add
-echo "List of to add to host and certificate (INCLUDING subdomains, split by commas ',')"
-read -p "Press enter to just refresh the certificate : " domainList
+echo "List of hosts to add to host file and certificate (INCLUDING subdomains, split by commas ',')"
+read -rp "Press enter to just refresh the certificate : " domainList
 cleanedDomainList="$(echo -e "${domainList}" | tr -d '[:space:]')"
 
 hostFile=$(getent ahosts | awk '{$1=""}1' | awk '{print}' ORS=' ' | tr " " "\n" | sed '/^[[:space:]]*$/d')
 while IFS=',' read -ra ADDR; do
     for i in "${ADDR[@]}"; do
-        if ! grep -q "^$i$" <<< $hostFile;then
+        if ! grep -q "^$i$" <<< "$hostFile";then
             echo -ne "Adding : "
             echo -e "\n127.0.0.1 $i" | sudo tee -a /etc/hosts
         fi
@@ -89,14 +91,14 @@ EOF
 echo "Generating certificate for domain(s) :"
 
 COUNT=0
-for string in "$(getent ahosts | awk '{$1=""}1' | awk '{print}' ORS=' ' | grep -Po "([a-z0-9|-]+\.(?<=\.)[a-z0-9|-]+)(?=\s)" | sort | uniq)"
+for string in $(getent ahosts | awk '{$1=""}1' | awk '{print}' ORS=' ' | grep -Po "(?<=\s)((?:[\w-]+\.[\w-]+)+)(?=\s)" | sort | uniq)
 do
     for line in $string
     do
         COUNT=$((COUNT+1))
-        printf "DNS.$COUNT = $line \n" >> certs/v3.ext
+        printf "DNS.%s = %s \n" "$COUNT" "$line" >> certs/v3.ext
         COUNT=$((COUNT+1))
-        printf "DNS.$COUNT = *.$line \n" >> certs/v3.ext
+        printf "DNS.%s = *.%s \n" "$COUNT" "$line" >> certs/v3.ext
 
         echo "*.$line"
     done
@@ -115,7 +117,7 @@ rm certs/v3.ext
 echo
 if [ "$shouldTouchTraefik" = true ];then
     echo "Touching traefik dynamic config file to trigger a soft reload..."
-    touch $traefikConfigPath
+    touch "$traefikConfigPath"
 fi
 
 echo
