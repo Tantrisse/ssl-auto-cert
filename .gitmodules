@@ -1,0 +1,3 @@
+[submodule "wsl-sudo"]
+	path = wsl-sudo
+	url = git@github.com:Chronial/wsl-sudo.git
